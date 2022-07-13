@@ -3,14 +3,14 @@ import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 
 import { AuthService } from './../../../core/services/auth.service';
+import { MyValidators } from './../../../utils/validators';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.scss']
+  styleUrls: ['./register.component.scss'],
 })
 export class RegisterComponent implements OnInit {
-
   form: FormGroup;
 
   constructor(
@@ -21,25 +21,35 @@ export class RegisterComponent implements OnInit {
     this.buildForm();
   }
 
-  ngOnInit() {
-  }
+  ngOnInit() {}
 
   register(event: Event) {
     event.preventDefault();
     if (this.form.valid) {
       const value = this.form.value;
-      this.authService.createUser(value.email, value.password)
-      .then(() => {
+      this.authService.createUser(value.email, value.password).then(() => {
         this.router.navigate(['/auth/login']);
       });
     }
   }
 
   private buildForm() {
-    this.form = this.formBuilder.group({
-      email: ['', [Validators.required]],
-      password: ['', [Validators.required]],
-    });
+    this.form = this.formBuilder.group(
+      {
+        email: ['', [Validators.required]],
+        password: [
+          '',
+          [
+            Validators.required,
+            Validators.minLength(6),
+            MyValidators.validatePassword,
+          ],
+        ],
+        confirmPassword: ['', [Validators.required]],
+      },
+      {
+        validators: MyValidators.matchPassword,
+      }
+    );
   }
-
 }
