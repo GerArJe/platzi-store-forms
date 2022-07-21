@@ -13,7 +13,7 @@ import { CategoriesService } from '../../../../core/services/categories.service'
 })
 export class CategoriesComponent implements OnInit, AfterViewInit  {
   dataSource: MatTableDataSource<Category>;
-  displayedColumns: string[] = ['_id', 'created_at', 'image', 'name', 'type'];
+  displayedColumns: string[] = ['_id', 'created_at', 'image', 'name', 'actions'];
   @ViewChild(MatPaginator) paginator: MatPaginator;
   @ViewChild(MatSort) sort: MatSort;
 

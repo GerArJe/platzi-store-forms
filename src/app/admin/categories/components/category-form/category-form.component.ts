@@ -1,12 +1,15 @@
 import { Component, OnInit } from '@angular/core';
+import { AngularFireStorage } from '@angular/fire/storage';
 import {
   FormControl,
   Validators,
   FormBuilder,
   FormGroup,
 } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, ActivatedRoute, Params } from '@angular/router';
+import { finalize } from 'rxjs/operators';
 import { CategoriesService } from '../../../../core/services/categories.service';
+import { MyValidators } from '../../../../utils/validators';
 
 @Component({
   selector: 'app-category-form',
@@ -15,20 +18,34 @@ import { CategoriesService } from '../../../../core/services/categories.service'
 })
 export class CategoryFormComponent implements OnInit {
   form: FormGroup;
+  categoryId: string;
 
   constructor(
     private formBuilder: FormBuilder,
     private categoriesService: CategoriesService,
-    private router: Router
+    private router: Router,
+    private storage: AngularFireStorage,
+    private route: ActivatedRoute
   ) {
     this.buildForm();
   }
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.route.params.subscribe((params: Params) => {
+      this.categoryId = params.id;
+      if (this.categoryId) {
+        this.getCategory();
+      }
+    });
+  }
 
   private buildForm() {
     this.form = this.formBuilder.group({
-      name: ['', Validators.required],
+      name: [
+        '',
+        [Validators.required, Validators.minLength(4)],
+        [MyValidators.validateCategory(this.categoriesService)],
+      ],
       image: ['', Validators.required],
     });
   }
@@ -43,7 +60,11 @@ export class CategoryFormComponent implements OnInit {
 
   save() {
     if (this.form.valid) {
-      this.createCategory();
+      if (this.categoryId) {
+        this.updateCategory()
+      } else {
+        this.createCategory();
+      }
     } else {
       this.form.markAllAsTouched();
     }
@@ -52,8 +73,40 @@ export class CategoryFormComponent implements OnInit {
   private createCategory() {
     const data = this.form.value;
     this.categoriesService.createCategory(data).subscribe((res) => {
-      console.log(res);
       this.router.navigate(['./admin/categories']);
     });
+  }
+  private updateCategory() {
+    const data = this.form.value;
+    this.categoriesService
+      .updateCategory(this.categoryId, data)
+      .subscribe((res) => {
+        this.router.navigate(['./admin/categories']);
+      });
+  }
+
+  private getCategory() {
+    this.categoriesService.getCategory(this.categoryId).subscribe((res) => {
+      this.form.patchValue(res);
+    });
+  }
+
+  uploadFile(event) {
+    const image = event.target.files[0];
+    const name = new Date().toString();
+    const ref = this.storage.ref(name);
+    const task = this.storage.upload(name, image);
+    task
+      .snapshotChanges()
+      .pipe(
+        finalize(() => {
+          const urlImage$ = ref.getDownloadURL();
+          urlImage$.subscribe((url) => {
+            console.log(url);
+            this.imageField.setValue(url);
+          });
+        })
+      )
+      .subscribe();
   }
 }
